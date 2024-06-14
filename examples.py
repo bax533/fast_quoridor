@@ -1,3 +1,4 @@
+import numpy as np
 import fast_quoridor as qcp
 import time
 
@@ -21,6 +22,7 @@ for move in moves:
 print("---")
 
 fence_move = qcp.Move(qcp.M_FENCE, 3, 6, 'h')
+fence_move_v = qcp.Move(qcp.M_FENCE, 2, 4, 'v')
 pawn_move = qcp.Move(qcp.M_PAWN, 1, 4, 'x')
 
 print("start board:")
@@ -33,13 +35,34 @@ print(board.Printed())
 print("--")
 
 board.Apply(fence_move)
-print("board after fence move:")
+print("board after fence move H:")
 print(board.Printed())
 print("--")
+
+board.Apply(fence_move_v)
+print("board after fence move V:")
+print(board.Printed())
+print("--")
+
+print("horizontal fence grid:")
+print(board.GetHorizontalFencesGrid())
+
+print("vertical fence grid:")
+print(board.GetVerticalFencesGrid())
+
+print("WHITE player position")
+print(board.GetPlayerPosition(qcp.WHITE))
+
+print("BLACK player position")
+print(board.GetPlayerPosition(qcp.BLACK))
+
+# MOVES AND GAME
+
 
 import fast_quoridor
 from fast_quoridor import BoardCpp
 from fast_quoridor import Move as MoveCpp
+
 
 class AgentMC_CPP:
     def __init__(self, n_of_rollouts, rollout_depth):
@@ -90,6 +113,5 @@ while(b.Winner() == fast_quoridor.INF):
     print(b.Printed())
 
 print("WHITE" if b.Winner() == fast_quoridor.WHITE else "BLACK", "WON THE GAME")
-
 
 

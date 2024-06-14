@@ -1,6 +1,6 @@
 #pragma GCC optimize("Ofast,inline,tracer,unroll-loops,vpt,split-loops,unswitch-loops")
 
-#define DEBUG 1
+// #define DEBUG 1
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -577,6 +577,94 @@ public:
 		return _black_fences;
 	}
 
+    std::pair<int, int> GetPlayerPosition(const int player){
+        const uint64_t& player_pos = player == WHITE ? _white_pos : _black_pos;
+        return {GetRow(player_pos), GetCol(player_pos)};        
+    }
+
+    std::vector<std::vector<bool>> GetHorizontalFencesGrid() const
+    {
+        std::vector<std::vector<bool>> ret = {
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false}
+        };
+
+        for(int row = 0; row < COL_LENGTH; row++)
+        {
+            for(int col = 0; col < ROW_LENGTH; col++)
+            {
+                uint64_t cur_pos = BITPOSITION(row, col);
+                if(cur_pos & _h_fence_top){
+                    ret[row][col] = true;
+                    ret[row][col-1] = true;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    std::vector<std::vector<bool>> GetVerticalFencesGrid() const
+    {
+        std::vector<std::vector<bool>> ret = {
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false}
+        };
+
+        for(int row = 0; row < COL_LENGTH; row++)
+        {
+            for(int col = 0; col < ROW_LENGTH; col++)
+            {
+                uint64_t cur_pos = BITPOSITION(row, col);
+                if(cur_pos & _v_fence_right){
+                    ret[row][col] = true;
+                    ret[row+1][col] = true;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    std::vector<std::vector<bool>> GetCenterFencesGrid() const
+    {
+        std::vector<std::vector<bool>> ret = {
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false},
+            {false, false, false, false, false, false, false, false}
+        };
+
+        for(int row = 0; row < COL_LENGTH; row++)
+        {
+            for(int col = 0; col < ROW_LENGTH; col++)
+            {
+                uint64_t cur_pos = BITPOSITION(row, col);
+                if(cur_pos & (_h_fence_top | _v_fence_right)){
+                    ret[row][col] = true;
+                }
+            }
+        }
+
+        return ret;
+    }
+
 	int Winner() const
 	{
 		if(_white_pos & TOP_ROW) return WHITE;
@@ -648,7 +736,20 @@ PYBIND11_MODULE(fast_quoridor, m){
         .def("Apply", &BoardCpp::Apply)
 		.def("GetTurn", &BoardCpp::GetTurn)
 		.def("Winner", &BoardCpp::Winner)
+		.def("GetPlayerPosition", &BoardCpp::GetPlayerPosition)
 		.def("GetWhiteFencesNum", &BoardCpp::GetWhiteFencesNum)
 		.def("GetBlackFencesNum", &BoardCpp::GetBlackFencesNum)
+		.def("GetHorizontalFencesGrid", [](BoardCpp& self) {
+                    pybind11::array out = pybind11::cast(self.GetHorizontalFencesGrid());
+                    return out;
+                })
+		.def("GetVerticalFencesGrid", [](BoardCpp& self) {
+                    pybind11::array out = pybind11::cast(self.GetVerticalFencesGrid());
+                    return out;
+                })
+		.def("GetCenterFencesGrid", [](BoardCpp& self) {
+                    pybind11::array out = pybind11::cast(self.GetCenterFencesGrid());
+                    return out;
+                })
         .def("Printed", &BoardCpp::BoardPrinted);
 }
