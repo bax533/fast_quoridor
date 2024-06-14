@@ -1,6 +1,6 @@
 #pragma GCC optimize("Ofast,inline,tracer,unroll-loops,vpt,split-loops,unswitch-loops")
 
-// #define DEBUG 1
+#define DEBUG 1
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -382,15 +382,20 @@ public:
             if(_v_fence_right & fence_pos)
             { return false; }
             
-            if(_h_fence_top & fence_pos || (!IsOutOfBounds(fence_row, fence_col + 1) && (_h_fence_top & (fence_pos << 1))))
-            { return false; }            
+            if(_h_fence_top & fence_pos ||
+				(!IsOutOfBounds(fence_row, fence_col + 1) && (_h_fence_top & (fence_pos << 1))) ||
+				(!IsOutOfBounds(fence_row, fence_col - 1) && (_h_fence_top & (fence_pos >> 1))))
+            { return false; }
+			
         }
         else if (orientation == 'v')
         {
             if(_h_fence_top & fence_pos)
             { return false; }
             
-            if(_v_fence_right & fence_pos || (!IsOutOfBounds(fence_row - 1, fence_col) && (_v_fence_right & (fence_pos << ROW_LENGTH))))
+            if(_v_fence_right & fence_pos ||
+				(!IsOutOfBounds(fence_row - 1, fence_col) && (_v_fence_right & (fence_pos << ROW_LENGTH))) ||
+				(!IsOutOfBounds(fence_row + 1, fence_col) && (_v_fence_right & (fence_pos >> ROW_LENGTH))))
             { return false; }
         }
 
@@ -562,6 +567,16 @@ public:
 		return _who;
 	}
 
+	int GetWhiteFencesNum() const
+	{
+		return _white_fences;
+	}
+
+	int GetBlackFencesNum() const
+	{
+		return _black_fences;
+	}
+
 	int Winner() const
 	{
 		if(_white_pos & TOP_ROW) return WHITE;
@@ -633,5 +648,7 @@ PYBIND11_MODULE(fast_quoridor, m){
         .def("Apply", &BoardCpp::Apply)
 		.def("GetTurn", &BoardCpp::GetTurn)
 		.def("Winner", &BoardCpp::Winner)
+		.def("GetWhiteFencesNum", &BoardCpp::GetWhiteFencesNum)
+		.def("GetBlackFencesNum", &BoardCpp::GetBlackFencesNum)
         .def("Printed", &BoardCpp::BoardPrinted);
 }
