@@ -557,6 +557,11 @@ public:
         return _possible_moves.size();
     }
 
+	int GetTurn() const
+	{
+		return _who;
+	}
+
 	void PrintBoard() const
 	{
 		char white_player_c = 'w';
@@ -615,5 +620,6 @@ PYBIND11_MODULE(fast_quoridor, m){
         .def("GetPossibleMoves", &BoardCpp::GetPossibleMoves)
         .def("GetNumOfPossibleMoves", &BoardCpp::GetNumOfPossibleMoves)
         .def("Apply", &BoardCpp::Apply)
+		.def("GetTurn", &BoardCpp::GetTurn)
         .def("Print", &BoardCpp::PrintBoard);
 }
