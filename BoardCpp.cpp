@@ -38,20 +38,20 @@ constexpr int INF = 99999999;
 
 uint64_t SHIFTED(const uint64_t& bitpos, const int& dir)
 {
-    if(dir == 0)
+    if(dir == LEFT)
         return bitpos << 1;
-    else if (dir == 1)
+    else if (dir == UP)
         return bitpos << 8;
-    else if (dir == 2)
+    else if (dir == RIGHT)
         return bitpos >> 1;
-    else if (dir == 3)
+    else if (dir == DOWN)
         return bitpos >> 8;
     return bitpos;
 }
 
 constexpr uint64_t BITPOSITION(const int& row, const int& col)
 {
-    return 1ull << (row * 8 + col);
+    return 1ull << (row * ROW_LENGTH + col);
 }
 
 constexpr int BITINDEX(const uint64_t& onehot) { return __builtin_ctzll(onehot); }
@@ -383,8 +383,8 @@ public:
             { return false; }
             
             if(_h_fence_top & fence_pos ||
-				(!IsOutOfBounds(fence_row, fence_col + 1) && (_h_fence_top & (fence_pos << 1))) ||
-				(!IsOutOfBounds(fence_row, fence_col - 1) && (_h_fence_top & (fence_pos >> 1))))
+				(!BitsOutOfBoundsWithDir(fence_pos, LEFT) && (_h_fence_top & SHIFTED(fence_pos, LEFT))) ||
+				(!BitsOutOfBoundsWithDir(fence_pos, RIGHT) && (_h_fence_top & SHIFTED(fence_pos, RIGHT))))
             { return false; }
 			
         }
@@ -394,8 +394,8 @@ public:
             { return false; }
             
             if(_v_fence_right & fence_pos ||
-				(!IsOutOfBounds(fence_row - 1, fence_col) && (_v_fence_right & (fence_pos << ROW_LENGTH))) ||
-				(!IsOutOfBounds(fence_row + 1, fence_col) && (_v_fence_right & (fence_pos >> ROW_LENGTH))))
+				(!BitsOutOfBoundsWithDir(fence_pos, DOWN) && (_v_fence_right & SHIFTED(fence_pos, DOWN))) ||
+				(!BitsOutOfBoundsWithDir(fence_pos, UP) && (_v_fence_right & SHIFTED(fence_pos, UP))))
             { return false; }
         }
 
