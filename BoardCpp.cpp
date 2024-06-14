@@ -562,6 +562,13 @@ public:
 		return _who;
 	}
 
+	int Winner() const
+	{
+		if(_white_pos & TOP_ROW) return WHITE;
+		if(_black_pos & BOT_ROW) return BLACK;
+		return INF;
+	}
+
 	std::string BoardPrinted() const
 	{
 		std::string ret = "";
@@ -624,5 +631,6 @@ PYBIND11_MODULE(fast_quoridor, m){
         .def("GetNumOfPossibleMoves", &BoardCpp::GetNumOfPossibleMoves)
         .def("Apply", &BoardCpp::Apply)
 		.def("GetTurn", &BoardCpp::GetTurn)
+		.def("Winner", &BoardCpp::Winner)
         .def("Printed", &BoardCpp::BoardPrinted);
 }
