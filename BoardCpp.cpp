@@ -617,6 +617,7 @@ PYBIND11_MODULE(fast_quoridor, m){
     m.attr("COL_LENGTH") = pybind11::int_(COL_LENGTH);
     m.attr("M_FENCE") = pybind11::int_(M_FENCE);
     m.attr("M_PAWN") = pybind11::int_(M_PAWN);
+    m.attr("INF") = pybind11::int_(INF);
 
     pybind11::class_<Move>(m, "Move")
         .def(pybind11::init<int, int, int, char>())
