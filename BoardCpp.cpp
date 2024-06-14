@@ -176,7 +176,7 @@ public:
         return type == other.type && row == other.row && col == other.col && orientation == other.orientation;
     }
 
-	void Print() const
+	std::string Printed() const
 	{
 		std::string ret = "";
 		if(type == M_FENCE) ret += "FENCE ";
@@ -186,8 +186,8 @@ public:
 		ret += std::to_string(col) + " ";	
 		
 		ret += orientation;
-		std::cout << ret << "\n";
-	}	
+		return ret + "\n";
+	}
 
     int type;
     int row;
@@ -562,8 +562,10 @@ public:
 		return _who;
 	}
 
-	void PrintBoard() const
+	std::string BoardPrinted() const
 	{
+		std::string ret = "";
+
 		char white_player_c = 'w';
 		char black_player_c = 'b';
 		char wall_right_c = '>';
@@ -581,10 +583,11 @@ public:
 				if(cur_pos & _v_fence_right) current_pos_str[1] = wall_right_c;
 				if(cur_pos & _h_fence_top) current_pos_str[2] = wall_top_c;
 
-				std::cout << current_pos_str << " ";
+				ret += current_pos_str + " ";
 			}
-			std::cout << "\n";
+			ret += "\n";
 		}
+		return ret;
 	}
 
 	uint64_t _h_fence_top, _v_fence_right;
@@ -610,7 +613,7 @@ PYBIND11_MODULE(fast_quoridor, m){
 
     pybind11::class_<Move>(m, "Move")
         .def(pybind11::init<int, int, int, char>())
-		.def("Print", &Move::Print);
+		.def("Printed", &Move::Printed);
 
 	pybind11::class_<BoardCpp>(m, "BoardCpp")
 		.def(pybind11::init<>())
@@ -621,5 +624,5 @@ PYBIND11_MODULE(fast_quoridor, m){
         .def("GetNumOfPossibleMoves", &BoardCpp::GetNumOfPossibleMoves)
         .def("Apply", &BoardCpp::Apply)
 		.def("GetTurn", &BoardCpp::GetTurn)
-        .def("Print", &BoardCpp::PrintBoard);
+        .def("Printed", &BoardCpp::BoardPrinted);
 }
