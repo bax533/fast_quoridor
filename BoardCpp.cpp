@@ -4,6 +4,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/operators.h>
 #include <pybind11/numpy.h>
 
 #include <bits/stdc++.h>
@@ -32,8 +33,6 @@ constexpr uint64_t WHOLE_BOARD = 0xFFFFFFFFFFFFFFFFull;
 
 constexpr int NO_PATH = 99999999;
 constexpr int INF = 99999999;
-
-
 
 
 uint64_t SHIFTED(const uint64_t& bitpos, const int& dir)
@@ -171,23 +170,29 @@ public:
         : type(t), row(r), col(c), orientation(o)
         {}
 
-    bool operator==(const Move& other) const
+
+    bool friend operator==(const Move& a, const Move& other)
     {
-        return type == other.type && row == other.row && col == other.col && orientation == other.orientation;
+        return a.type == other.GetType() && a.row == other.GetRow() && a.col == other.GetCol() && a.GetOrientation() == other.GetOrientation();
     }
 
 	std::string Printed() const
 	{
 		std::string ret = "";
-		if(type == M_FENCE) ret += "FENCE ";
-		else if(type == M_PAWN) ret += "PAWN ";
+		if(type == M_FENCE) ret += "Move(fast_quoridor.M_FENCE, ";
+		else if(type == M_PAWN) ret += "fast_quoridor.M_PAWN,";
 		
-		ret += std::to_string(row) + " ";
-		ret += std::to_string(col) + " ";	
+		ret += std::to_string(row) + ", ";
+		ret += std::to_string(col) + ", ";	
 		
-		ret += orientation;
-		return ret + "\n";
+		ret += std::to_string(GetOrientation()) + ")";
+		return ret;
 	}
+
+    int GetType() const { return type; }
+    int GetRow() const { return row; }
+    int GetCol() const { return col; }
+    int GetOrientation() const { return orientation == 'x' ? 0 : (orientation =='v' ? -1 : 1); }
 
     int type;
     int row;
@@ -222,8 +227,8 @@ public:
 	  _who(WHITE),
       _possible_moves(std::unordered_set<Move>())
 	{
-        srand(time(NULL));
-    }
+		srand(time(NULL));
+	}
 
     bool IsReachable(const uint64_t& source_pos, const int& direction,
             const uint64_t& fence_bitpos = 0ull, const char& orientation = 'x') const
@@ -422,16 +427,16 @@ public:
     {
         float distToEndStraightW = 1.0f;
         float pathToEndW = 1.0f;
-        float fencesNumW = 0.75f;
+        float fencesNumW = 1.0f;
 
         float whiteValue =
             static_cast<int>(BITINDEX(_white_pos))/8 * distToEndStraightW +
-            WhiteShortestPath() * pathToEndW +
+            (64 - WhiteShortestPath()) * pathToEndW +
             _white_fences * fencesNumW;
 
         float blackValue =
             (8-static_cast<int>(BITINDEX(_black_pos))/8) * distToEndStraightW +
-            BlackShortestPath() * pathToEndW +
+            (64 - BlackShortestPath()) * pathToEndW +
             _black_fences * fencesNumW;
 
         return whiteValue - blackValue;
@@ -478,6 +483,25 @@ public:
         return Move(-1, -1, -1, 'x');
     }
 
+    Move BestMove() const // current best move acording to Heuristic
+    {
+        float best_val = -9999999.0f;
+        Move best_move = Move(-1, -1, -1, 'x');
+        for(const Move& m : _possible_moves)
+        {
+            BoardCpp newBoard = ApplyNew(m);
+            float h_val = newBoard.Heuristic();
+            
+            if(h_val > best_val)
+            {
+                best_val = h_val;
+                best_move = m;
+            }
+        }
+
+        return best_move;
+    }
+
     void PlaceFence(const uint64_t& fence_pos, const char orientation, const int player = -99)
     {
         #ifdef DEBUG
@@ -520,6 +544,18 @@ public:
             MovePawn(BITPOSITION(move.row, move.col), _who);
 
 		_who = 1 - _who;
+    }
+
+    BoardCpp ApplyNew(const Move& move) const
+    {
+        BoardCpp newBoard = BoardCpp();
+        newBoard._h_fence_top = _h_fence_top;
+        newBoard._v_fence_right = _v_fence_right;
+        newBoard._white_pos = _white_pos;
+        newBoard._black_fences = _black_fences;
+        newBoard._who = _who;
+        newBoard.Apply(move);
+        return newBoard;
     }
 
     void CalculatePossibleMoves()
@@ -724,7 +760,12 @@ PYBIND11_MODULE(fast_quoridor, m){
 
     pybind11::class_<Move>(m, "Move")
         .def(pybind11::init<int, int, int, char>())
-		.def("Printed", &Move::Printed);
+		.def("GetType", &Move::GetType)
+        .def("GetRow", &Move::GetRow)
+        .def("GetCol", &Move::GetCol)
+        .def("GetOrientation", &Move::GetOrientation)
+        .def(pybind11::self == pybind11::self)
+        .def("Printed", &Move::Printed);
 
 	pybind11::class_<BoardCpp>(m, "BoardCpp")
 		.def(pybind11::init<>())
@@ -734,6 +775,8 @@ PYBIND11_MODULE(fast_quoridor, m){
         .def("GetPossibleMoves", &BoardCpp::GetPossibleMoves)
         .def("GetNumOfPossibleMoves", &BoardCpp::GetNumOfPossibleMoves)
         .def("Apply", &BoardCpp::Apply)
+        .def("ApplyNew", &BoardCpp::ApplyNew)
+        .def("BestMove", &BoardCpp::BestMove)
 		.def("GetTurn", &BoardCpp::GetTurn)
 		.def("Winner", &BoardCpp::Winner)
 		.def("GetPlayerPosition", &BoardCpp::GetPlayerPosition)
