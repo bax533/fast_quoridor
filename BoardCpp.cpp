@@ -57,14 +57,14 @@ constexpr int BITINDEX(const uint64_t& onehot) { return __builtin_ctzll(onehot);
 
 constexpr int BITS_ON(const uint64_t& mask) { return __builtin_popcountll(mask); }
 
-constexpr int GetRow(const uint64_t& pos)
+int GetRow(const uint64_t& pos)
 {
     #ifdef DEBUG
         assert(BITS_ON(pos) == 1); 
     #endif
     
         
-    return BITINDEX(pos)/COL_LENGTH;
+    return static_cast<int>(BITINDEX(pos))/COL_LENGTH;
 }
 
 constexpr int GetCol(const uint64_t& pos)
@@ -320,7 +320,11 @@ public:
             }
         #endif
 
-        std::priority_queue<std::pair<int, uint64_t> > open;
+        std::priority_queue<
+            std::pair<int, std::pair<int, uint64_t>>,
+            std::vector<std::pair<int, std::pair<int, uint64_t>>>,
+            std::greater<std::pair<int, std::pair<int, uint64_t>>>
+        > open;
         std::unordered_map<uint64_t, int> gScore;
         std::unordered_map<uint64_t, int> fScore;
         
@@ -338,16 +342,16 @@ public:
         if(player == WHITE) end_row = COL_LENGTH-1;
         
         gScore[pawn_pos] = 0;
-        fScore[pawn_pos] = abs(end_row - static_cast<int>(BITINDEX(pawn_pos)/COL_LENGTH));
-        open.push({0, pawn_pos});        
+        fScore[pawn_pos] = abs(end_row - GetRow(pawn_pos));
+        open.push({fScore[pawn_pos], {0,pawn_pos}});     
 
         const std::unordered_set<int> DIRECTIONS = {LEFT, UP, RIGHT, DOWN};
         while(!open.empty())
         {
-            std::pair<int, uint64_t> top = open.top();
+            std::pair<int, std::pair<int, uint64_t>> top = open.top();
             open.pop();
-            int current_len = top.first;
-            uint64_t current_pos = top.second;
+            int current_len = top.second.first;
+            uint64_t current_pos = top.second.second;
 
             if((BITINDEX(current_pos) / ROW_LENGTH) == end_row)
                 return current_len;
@@ -361,8 +365,8 @@ public:
                     if(new_score < gScore[neighbour_pos])
                     {
                         gScore[neighbour_pos] = new_score;
-                        fScore[neighbour_pos] = new_score + abs(end_row - static_cast<int>(BITINDEX(neighbour_pos)/COL_LENGTH));
-                        open.push({fScore[neighbour_pos], neighbour_pos});
+                        fScore[neighbour_pos] = new_score + abs(end_row - static_cast<int>(GetRow(neighbour_pos)));
+                        open.push({fScore[neighbour_pos], {new_score, neighbour_pos}});
                     }
                 }
             }
@@ -483,23 +487,42 @@ public:
         return Move(-1, -1, -1, 'x');
     }
 
-    Move BestMove() const // current best move acording to Heuristic
+    Move BestMove(const int player) const // current best move acording to Heuristic
     {
-        float best_val = -9999999.0f;
-        Move best_move = Move(-1, -1, -1, 'x');
-        for(const Move& m : _possible_moves)
+        if(player == WHITE)
         {
-            BoardCpp newBoard = ApplyNew(m);
-            float h_val = newBoard.Heuristic();
-            
-            if(h_val > best_val)
+            float best_val = -9999999.0f;
+            Move best_move = Move(-1, -1, -1, 'x');
+            for(const Move& m : _possible_moves)
             {
-                best_val = h_val;
-                best_move = m;
+                BoardCpp newBoard = ApplyNew(m);
+                float h_val = newBoard.Heuristic();
+                
+                if(h_val > best_val)
+                {
+                    best_val = h_val;
+                    best_move = m;
+                }
             }
-        }
 
-        return best_move;
+            return best_move;
+        } else {
+            float best_val = 9999999.0f;
+            Move best_move = Move(-1, -1, -1, 'x');
+            for(const Move& m : _possible_moves)
+            {
+                BoardCpp newBoard = ApplyNew(m);
+                float h_val = newBoard.Heuristic();
+                
+                if(h_val < best_val)
+                {
+                    best_val = h_val;
+                    best_move = m;
+                }
+            }
+
+            return best_move;
+        }
     }
 
     void PlaceFence(const uint64_t& fence_pos, const char orientation, const int player = -99)
@@ -552,9 +575,16 @@ public:
         newBoard._h_fence_top = _h_fence_top;
         newBoard._v_fence_right = _v_fence_right;
         newBoard._white_pos = _white_pos;
+        newBoard._black_pos = _black_pos;
         newBoard._black_fences = _black_fences;
         newBoard._who = _who;
-        newBoard.Apply(move);
+
+        if(move.type == M_FENCE)
+            newBoard.PlaceFence(BITPOSITION(move.row, move.col), move.orientation, _who);
+        else if (move.type == M_PAWN)
+            newBoard.MovePawn(BITPOSITION(move.row, move.col), _who);
+
+        newBoard._who = 1 - newBoard._who;
         return newBoard;
     }
 
@@ -779,6 +809,8 @@ PYBIND11_MODULE(fast_quoridor, m){
         .def("BestMove", &BoardCpp::BestMove)
 		.def("GetTurn", &BoardCpp::GetTurn)
 		.def("Winner", &BoardCpp::Winner)
+        .def("WhiteShortestPath", &BoardCpp::WhiteShortestPath)
+        .def("BlackShortestPath", &BoardCpp::BlackShortestPath)
 		.def("GetPlayerPosition", &BoardCpp::GetPlayerPosition)
 		.def("GetWhiteFencesNum", &BoardCpp::GetWhiteFencesNum)
 		.def("GetBlackFencesNum", &BoardCpp::GetBlackFencesNum)
