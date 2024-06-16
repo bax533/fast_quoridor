@@ -439,9 +439,14 @@ public:
             _white_fences * fencesNumW;
 
         float blackValue =
-            (8-static_cast<int>(BITINDEX(_black_pos))/8) * distToEndStraightW +
+            (7-static_cast<int>(BITINDEX(_black_pos))/8) * distToEndStraightW +
             (64 - BlackShortestPath()) * pathToEndW +
             _black_fences * fencesNumW;
+
+        if(Winner() == WHITE)
+            return 10000;
+        if(Winner() == BLACK);
+            return -10000;
 
         return whiteValue - blackValue;
     }
@@ -471,6 +476,30 @@ public:
         }
 
         return newBoard.HeuristicWinningPlayer();
+    }
+
+    BoardCpp RolloutMCTS_Board(Move move, const int& depth) const
+    {
+        BoardCpp newBoard = BoardCpp();
+        newBoard._h_fence_top = _h_fence_top;
+        newBoard._v_fence_right = _v_fence_right;
+        newBoard._white_pos = _white_pos;
+        newBoard._black_fences = _black_fences;
+        newBoard._who = _who;
+
+        int depth_it = 0;
+        while(depth_it < depth)
+        {
+            newBoard.Apply(move);
+            if(depth_it+1 < depth)
+            {
+                newBoard.CalculatePossibleMoves();
+                move = newBoard.RandomMove();
+            }
+            depth_it++;
+        }
+
+        return newBoard;
     }
 
     Move RandomMove() const // assuming possible moves are calculated!
@@ -766,6 +795,11 @@ public:
 		return ret;
 	}
 
+    uint64_t GetHFenceTop() const { return _h_fence_top; }
+    uint64_t GetVFenceRight() const { return _v_fence_right; }
+    uint64_t GetWhitePos() const { return _white_pos; }
+    uint64_t GetBlackPos() const { return _black_pos; }
+
 	uint64_t _h_fence_top, _v_fence_right;
 	uint64_t _white_pos, _black_pos;
 	int _white_fences, _black_fences;
@@ -800,6 +834,7 @@ PYBIND11_MODULE(fast_quoridor, m){
 	pybind11::class_<BoardCpp>(m, "BoardCpp")
 		.def(pybind11::init<>())
 		.def("RolloutMCTS", &BoardCpp::RolloutMCTS)
+		.def("RolloutMCTS_Board", &BoardCpp::RolloutMCTS_Board)
         .def("CalculatePossibleMoves", &BoardCpp::CalculatePossibleMoves)
         .def("RandomMove", &BoardCpp::RandomMove)
         .def("GetPossibleMoves", &BoardCpp::GetPossibleMoves)
@@ -809,11 +844,16 @@ PYBIND11_MODULE(fast_quoridor, m){
         .def("BestMove", &BoardCpp::BestMove)
 		.def("GetTurn", &BoardCpp::GetTurn)
 		.def("Winner", &BoardCpp::Winner)
+        .def("Heuristic", &BoardCpp::Heuristic)
         .def("WhiteShortestPath", &BoardCpp::WhiteShortestPath)
         .def("BlackShortestPath", &BoardCpp::BlackShortestPath)
 		.def("GetPlayerPosition", &BoardCpp::GetPlayerPosition)
 		.def("GetWhiteFencesNum", &BoardCpp::GetWhiteFencesNum)
 		.def("GetBlackFencesNum", &BoardCpp::GetBlackFencesNum)
+		.def("GetHFenceTop", &BoardCpp::GetHFenceTop)
+		.def("GetVFenceRight", &BoardCpp::GetVFenceRight)
+		.def("GetWhitePos", &BoardCpp::GetWhitePos)
+		.def("GetBlackPos", &BoardCpp::GetBlackPos)
 		.def("GetHorizontalFencesGrid", [](BoardCpp& self) {
                     pybind11::array out = pybind11::cast(self.GetHorizontalFencesGrid());
                     return out;
